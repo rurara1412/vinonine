@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduce 𝐕𝐍𝐍𝐍 — Mu!</title>
+<style>
+  :root{
+    --thumb-size:80px;
+    --thumb-gap:12px;
+    --main-height:540px;
+  }
+  /* --- Base reset --- */
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic UI","Microsoft YaHei UI","PingFang TC",Arial,sans-serif;
+    color:#91c8e7;
+    background:#1a1029;
+    /* 預設游標 */
+    cursor:url('hover.png') 16 16, auto;
+  }
+  a{
+    color:#ff6eda;
+    text-decoration:none
+  }
+  a:hover{
+    text-decoration:underline
+  }
+  img{max-width:100%;display:block}
+
+  /* 所有可點元素使用 hover2 游標 */
+  button,
+  a,
+  [role="button"],
+  .thumbs button,
+  .to-top{
+    cursor:url('hover2.png') 16 16, pointer;
+  }
+
+  .container{
+    max-width:1100px;
+    margin:24px auto 80px;
+    background:#261239;
+    border-radius:16px;
+    box-shadow:
+      0 0 0 2px rgba(255,110,218,.18),
+      0 18px 40px rgba(7,0,24,.65);
+    padding:24px;
+  }
+  .breadcrumbs{
+    font-size:12px;
+    color:#c6b5ff;
+    margin-bottom:8px
+  }
+  .product{
+    display:grid;
+    grid-template-columns:92px 1fr 360px;
+    gap:20px;
+  }
+
+  /* 左欄縮圖 */
+  .thumbs{
+    display:flex;
+    flex-direction:column;
+    gap:var(--thumb-gap);
+    align-items:center;
+    max-height:calc(var(--thumb-size)*6 + var(--thumb-gap)*5);
+    overflow:auto;
+    overscroll-behavior:contain;
+    padding-right:2px;
+  }
+  .thumbs button{
+    width:var(--thumb-size);
+    height:var(--thumb-size);
+    border-radius:14px;
+    border:1px solid #5a35a5;
+    overflow:hidden;
+    background:#35164f;
+    padding:0;
+    flex:0 0 auto;
+    box-shadow:0 4px 10px rgba(0,0,0,.35);
+  }
+  .thumbs img{
+    width:100%;
+    height:100%;
+    object-fit:cover
+  }
+  .thumbs button[aria-selected="true"]{
+    outline:3px solid #ff6eda;
+    box-shadow:0 0 0 2px #261239,0 0 18px rgba(255,110,218,.85);
+  }
+
+  /* 中欄主圖 */
+  .main{
+    position:relative;
+    background:#2f1546;
+    border-radius:16px;
+    border:1px solid #6c3bd1;
+    height:var(--main-height);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.55);
+  }
+  .main img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    transition:opacity .15s ease
+  }
+
+  /* 放大鏡 */
+  .zoom-lens{
+   position:absolute;
+   pointer-events:none;
+   width:180px;
+   height:180px;
+   display:none;
+   filter:drop-shadow(0 10px 22px rgba(0,0,0,.45));
+   background-repeat:no-repeat;
+   background-size:200% 200%;
+   box-shadow:0 0 0 2px rgba(116,243,216,.8);
+   /* 圖2 頭像剪影遮罩（Safari 也支援） */
+   clip-path:polygon(
+     15% 40%,
+     25% 18%, 35% 10%, 45% 16%, 50% 30%,
+     55% 16%, 65% 10%, 75% 18%, 85% 40%,
+     92% 55%, 88% 78%,
+     70% 92%, 50% 96%, 30% 92%,
+     12% 78%, 8% 55%
+   );
+   -webkit-clip-path:polygon(
+     15% 40%,
+     25% 18%, 35% 10%, 45% 16%, 50% 30%,
+     55% 16%, 65% 10%, 75% 18%, 85% 40%,
+     92% 55%, 88% 78%,
+     70% 92%, 50% 96%, 30% 92%,
+     12% 78%, 8% 55%
+   );
+}
+
+/* 若瀏覽器支援 path()，用更平滑的圖2頭像路徑覆蓋 */
+@supports (clip-path: path("M0,0 L1,1")) {
+  .zoom-lens{
+    clip-path:path("M50% 8% C 39% 5%, 27% 16%, 23% 28% C 22% 21%, 18% 16%, 13% 18% C 6% 22%, 6% 36%, 9% 47% C 13% 63%, 22% 81%, 36% 90% C 44% 95%, 56% 95%, 64% 90% C 78% 81%, 87% 63%, 91% 47% C 94% 36%, 94% 22%, 87% 18% C 82% 16%, 78% 21%, 77% 28% C 73% 16%, 61% 5%, 50% 8% Z");
+    -webkit-clip-path:path("M50% 8% C 39% 5%, 27% 16%, 23% 28% C 22% 21%, 18% 16%, 13% 18% C 6% 22%, 6% 36%, 9% 47% C 13% 63%, 22% 81%, 36% 90% C 44% 95%, 56% 95%, 64% 90% C 78% 81%, 87% 63%, 91% 47% C 94% 36%, 94% 22%, 87% 18% C 82% 16%, 78% 21%, 77% 28% C 73% 16%, 61% 5%, 50% 8% Z");
+  }
+}
+  .main[data-zoom="on"] .zoom-lens{ display:block; }
+
+  /* 右欄 */
+  .panel h1{
+    font-size:20px;
+    line-height:1.5;
+    margin:0 0 10px;
+    color:#ffe8ff;
+  }
+  .badge{
+    display:inline-block;
+    font-size:12px;
+    color:#1b0a24;
+    background:linear-gradient(135deg,#ff6eda,#74f3d8);
+    padding:3px 12px;
+    border-radius:999px;
+    margin-bottom:8px;
+    box-shadow:0 4px 10px rgba(0,0,0,.35);
+  }
+  .price{
+    font-size:18px;
+    margin:16px 0;
+    color:#f9d2ff;
+  }
+  .price .yen{
+    font-weight:700;
+    font-size:20px;
+    color:#74f3d8;
+  }
+  .stock{
+    border:2px solid #ff6eda;
+    color:#ffb2f2;
+    border-radius:10px;
+    padding:10px 12px;
+    font-weight:700;
+    display:inline-block;
+    margin:8px 0;
+    background:rgba(38,18,57,.8);
+  }
+  .notice{
+    font-size:12px;
+    color:#f6d8ff;
+    background:#2a1238;
+    border:1px solid rgba(255,110,218,.55);
+    border-radius:8px;
+    padding:10px 12px;
+    margin:8px 0;
+  }
+  .btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    height:48px;
+    border-radius:999px;
+    border:1px solid #5a35a5;
+    background:#35164f;
+    color:#91c8e7;
+    font-weight:700;
+    box-shadow:0 6px 16px rgba(0,0,0,.5);
+  }
+  .btn-primary{
+    background:#ff6eda;
+    border:1px solid #ff9ae9;
+    color:#270a28;
+  }
+  .btn + .btn{margin-top:10px}
+  .btn:hover{
+    background:#41205f;
+  }
+  .btn.btn-primary:hover{
+    background:#ff8be4;
+  }
+  .share{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+  }
+  .share .dot{
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    background:#3d205f;
+    box-shadow:0 4px 10px rgba(0,0,0,.4);
+  }
+
+  .section{margin-top:28px}
+  .section h2{
+    font-size:16px;
+    margin:0 0 10px;
+    border-left:4px solid #74f3d8;
+    padding-left:8px;
+    color:#91c8e7;
+  }
+  .dl{
+    font-size:14px;
+    line-height:1.9;
+    color:#f3d2ff;
+  }
+  .dl p{margin:0 0 6px}
+
+  /* RWD */
+  @media (max-width:980px){
+    .product{grid-template-columns:80px 1fr}
+    .panel{grid-column:span 2}
+  }
+  @media (max-width:640px){
+    .product{grid-template-columns:1fr}
+    .thumbs{
+      order:2;
+      flex-direction:row;
+      max-height:none;
+      height:auto;
+      overflow:auto hidden
+    }
+    .thumbs button{
+      width:64px;
+      height:64px
+    }
+    .main{height:320px}
+  }
+
+  /* Footer */
+  .site-footer{
+    background:#160c24;
+    color:#e6c4ff;
+    border-top:1px solid #402157;
+    margin-top:40px
+  }
+  .site-footer .inner{
+    max-width:1100px;
+    margin:0 auto;
+    padding:32px 24px 16px
+  }
+  .site-footer .links{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:24px;
+    font-size:14px
+  }
+  .site-footer h4{
+    margin:0 0 8px;
+    font-size:16px;
+    color:#ffb5f2
+  }
+  .site-footer ul{list-style:none;padding:0;margin:0}
+  .site-footer li{margin:6px 0}
+  .site-footer a{
+    color:#e6c4ff;
+    text-decoration:none
+  }
+  .site-footer a:hover{text-decoration:underline}
+  .site-footer .ruleline{
+    border-top:1px solid #3a214d;
+    margin:24px 0
+  }
+  .site-footer .legal{
+    font-size:12px;
+    line-height:1.8;
+    text-align:center;
+    max-width:920px;
+    margin:0 auto 12px;
+    color:#d8b7ff
+  }
+  .site-footer .sns{
+    display:flex;
+    justify-content:center;
+    gap:24px;
+    margin:10px 0 6px
+  }
+  .site-footer .sns a{
+    display:inline-flex;
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    background:#261239;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.45);
+    border:1px solid #4a2b62
+  }
+  .site-footer .home-link{text-align:center;margin:8px 0 0}
+  .copyright-bar{
+    background:#0f071b;
+    color:#91c8e7;
+    font-size:12px;
+    text-align:center;
+    padding:10px 0
+  }
+
+  /* TOP：改為圖片 vinonineTOP.png */
+  .to-top{
+    position:fixed;
+    right:40px;
+    bottom:0px;
+    z-index:2147483647;
+    background:transparent;
+    border:0;
+    padding:0;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .to-top img{
+    display:block;
+    width:250px;
+    height:auto;
+    filter:drop-shadow(0 0 16px rgba(175,88,255,.9));
+  }
+  .to-top:focus,
+  .to-top:focus-visible{
+    outline:none;
+    box-shadow:none
+  }
+</style>
+</head>
+<body>
+  <!-- BGM：將 src 換成你的 mp3 檔案名稱 -->
+  <audio id="bgm" loop autoplay>
+    <source src="bgm.mp3" type="audio/mpeg">
+  </audio>
+
+  <div class="container">
+    <div class="breadcrumbs">EVIL &gt; NAUGHTY100% &gt; 𝕍𝕀ℕ𝕆ℕ𝕀ℕ𝔼 </div>
+
+    <div class="product">
+      <!-- 左：縮圖 -->
+      <div class="thumbs" id="thumbs" role="tablist" aria-label="商品縮圖">
+        <button role="tab" aria-selected="true"><img src="vinonine(1).gif"  alt="主圖1"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(2).gif"  alt="主圖2"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(3).png"  alt="主圖3"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(4).png"  alt="主圖4"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(5).jpg"  alt="主圖5"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(6).png"  alt="主圖6"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(7).png"  alt="主圖7"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(8).png"  alt="主圖8"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(9).png"  alt="主圖9"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(10).jpg" alt="主圖10"></button>
+        <button role="tab" aria-selected="false"><img src="vinonine(11).jpg" alt="主圖11"></button>
+      </div>
+
+      <!-- 中：主圖 + 放大御覽 -->
+      <div class="main" id="viewer" aria-live="polite">
+        <img id="mainImage" src="vinonine(1).gif" alt="メイン画像">
+        <div class="zoom-lens" id="zoomLens" aria-hidden="true"></div>
+      </div>
+
+      <!-- 右：商品資訊 -->
+      <div class="panel">
+        <div class="badge">限定</div>
+        <h1>𝕍𝕀ℕ𝕆ℕ𝕀ℕ𝔼【2025年09月09日お誕生】</h1>
+        <div class="price">悪戯程度：<span class="yen">∞∞∞</span>（謎込）</div>
+        <div class="stock"></div>
+        <div class="notice">※小悪魔行方不明者でおり、基本捕獲不可です。 <br>
+        ※出沒參考は2025年10月31日のみとなります。<br>
+        ※初目擊は2002年05月14日と噂が流れおりますが...<br>
+        ...現在も謎が多いな生き物でおります。</div>
+
+        <!-- 橘框整塊可點 -->
+        <div class="cta-box" id="ctaBox" role="button" tabindex="0" aria-label="購入・お気に入りエリア">
+          <button class="btn buy">君に夢中ｩ</button>
+          <button class="btn btn-primary">お気に入りに捕獲</button>
+        </div>
+
+        <div class="share">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>この子について</h2>
+      <div class="dl">
+        <p>相簿詳細</p>
+        <p>※ご注意!本網站所現れた の҉9҉9҉ 最高極為可愛い!請貴重で參閱希望。</p>
+        <p>※よく常出沒點は頂溪駅と石牌駅、偶には心中山駅もしくは公館で目擊情報が記載しております。</p>
+        <p>※VNNNは非尋常生き物でおり、決してご寵飼いただくことはできません。（ある石牌RACCOONを除く）。</p>
+        <p>※SNAKEやDRINKING決済をご利用の場合、ご注文日から當下以内にご祭食が確認できたお客様のみお届けとなります。確認が取れない場合、把糖分還來とさせていただきます。</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="inner">
+        <div class="links">
+          <div><h4>お問い合わせ</h4><ul><li><a href="#">よくあるご質問</a></li><li><a href="#">総合お問い合わせ</a></li></ul></div>
+          <div><h4>ご利用ガイド</h4><ul><li><a href="#">ご捕獲について</a></li><li><a href="#">飲食習慣について</a></li><li><a href="#">お支払いについて</a></li></ul></div>
+          <div><h4>&nbsp;</h4><ul><li><a href="#">配送および送料について</a></li><li><a href="#">変更・交換・返品について</a></li><li><a href="#">会員について</a></li></ul></div>
+          <div><h4>&nbsp;</h4><ul><li><a href="#">メール配信について</a></li><li><a href="#">VNNN X Onlineについて</a></li></ul></div>
+        </div>
+        <div class="ruleline"></div>
+        <p class="legal">このWebサイトは學術練習のみ、原網站https://shop.san-x.co.jp/product/detail/RLKK1019となります。<br>
+        このWebサイト上の文章・写真・キャラクターの絵柄などの著作権はYUJU LINまたはそれぞれの著作権者に帰属しています。<br>
+        これらの著作物の全部または一部を著作権者の許諾を得ず勝手に複製、変更することとなります。</p>
+        <div class="sns">
+          <a href="#" aria-label="Facebook" title="Facebook">
+            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#3b5998"></circle><path fill="#fff" d="M13 10h2.3l.3-2.3H13V6.4c0-.7.2-1.1 1.1-1.1h1.5V3h-2c-2.3 0-3.1 1.2-3.1 3.2v1.6H8v2.3h2.5V21H13v-11z"/></svg>
+          </a>
+          <a href="#" aria-label="X" title="X">
+            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#000"></circle><path fill="#fff" d="M7 6l4.6 6.1L7 18h2.3l3.2-4.2L15.7 18H18l-4.8-6.4L18 6h-2.3l-3 3.9L9.9 6H7z"/></svg>
+          </a>
+        </div>
+        <p class="home-link"><a href="#">https://www.instagram.com/saluti_stella/</a></p>
+      </div>
+    </footer>
+    <div class="copyright-bar">©VINO., 99. NINE RESERVED.</div>
+
+    <!-- TOP：改為圖片 -->
+    <button id="toTop" class="to-top" type="button" aria-label="ページの先頭へ">
+      <img src="vinonineTOP.png" alt="TOPへ">
+    </button>
+  </div>
+
+<script>
+/* 縮圖 → 主圖切換 + 放大御覽（無外部套件） */
+(function(){
+  const viewer = document.getElementById('viewer');
+  const main   = document.getElementById('mainImage');
+  const lens   = document.getElementById('zoomLens');
+  const thumbs = document.getElementById('thumbs');
+  const ZOOM   = 2.0;
+
+  function setLensBg(src){
+    lens.style.backgroundImage = 'url(' + src + ')';
+    requestAnimationFrame(()=>{
+      const w = main.clientWidth  * ZOOM;
+      const h = main.clientHeight * ZOOM;
+      lens.style.backgroundSize = w + 'px ' + h + 'px';
+    });
+  }
+  setLensBg(main.src);
+
+  // 縮圖點擊切換主圖
+  thumbs.addEventListener('click', e=>{
+    const btn = e.target.closest('button[role="tab"]');
+    if(!btn) return;
+    thumbs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected','false'));
+    btn.setAttribute('aria-selected','true');
+    const img = btn.querySelector('img');
+    const newSrc = img.getAttribute('src');
+    main.style.opacity = 0.3;
+    const tmp = new Image();
+    tmp.onload = ()=>{
+      main.src = newSrc;
+      main.alt = img.alt || 'メイン画像';
+      main.style.opacity = 1;
+      setLensBg(newSrc);
+    };
+    tmp.src = newSrc;
+  });
+
+  // 放大鏡
+  (function(){
+  const viewer = document.getElementById('viewer');
+  const img    = document.getElementById('mainImage');
+  const lens   = document.getElementById('zoomLens');
+  const ZOOM   = 2.5;  // 放大倍率
+
+  function getDisplayBox(){
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const bw = viewer.clientWidth, bh = viewer.clientHeight;
+    const s  = Math.min(bw/iw, bh/ih);
+    const dw = iw * s;
+    const dh = ih * s;
+    const ox = (bw - dw) / 2;
+    const oy = (bh - dh) / 2;
+    return {dw, dh, ox, oy};
+  }
+
+  function setLensBg(){
+    const {dw, dh} = getDisplayBox();
+    lens.style.backgroundImage = `url('${img.src}')`;
+    lens.style.backgroundSize  = `${dw * ZOOM}px ${dh * ZOOM}px`;
+  }
+
+  function moveLens(e){
+    const rect = viewer.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const {dw, dh, ox, oy} = getDisplayBox();
+
+    const cx = Math.max(ox, Math.min(ox + dw, x));
+    const cy = Math.max(oy, Math.min(oy + dh, y));
+
+    lens.style.left = (cx - lens.offsetWidth  / 2) + 'px';
+    lens.style.top  = (cy - lens.offsetHeight / 2) + 'px';
+
+    const bx = ((cx - ox) / dw) * 100;
+    const by = ((cy - oy) / dh) * 100;
+    lens.style.backgroundPosition = `${bx}% ${by}%`;
+  }
+
+  viewer.addEventListener('mouseenter', ()=>{
+    viewer.dataset.zoom = 'on';
+    setLensBg();
+  });
+  viewer.addEventListener('mouseleave', ()=>{
+    viewer.dataset.zoom = 'off';
+  });
+  viewer.addEventListener('mousemove', moveLens);
+
+  img.addEventListener('load', setLensBg);
+  window.addEventListener('resize', setLensBg);
+})();
+
+  // 左欄滾輪只在縮圖欄捲動
+  thumbs.addEventListener('wheel', (e)=>{
+    const el = e.currentTarget;
+    const atTop = el.scrollTop === 0 && e.deltaY < 0;
+    const atBottom = Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight && e.deltaY > 0;
+    if(!atTop && !atBottom){ e.stopPropagation(); }
+  }, {passive:true});
+
+  window.addEventListener('resize', ()=>setLensBg(main.src));
+})();
+</script>
+<script>
+/* 橘框整塊可點 + TOP */
+(function(){
+  const box = document.getElementById('ctaBox');
+  const buyBtn = document.querySelector('.btn.buy') || document.querySelector('.btn');
+  if(box && buyBtn){
+    box.addEventListener('click', (e)=>{ if(!e.target.closest('button')) buyBtn.click(); });
+    box.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); buyBtn.click(); }});
+  }
+  const topBtn = document.getElementById('toTop');
+  if(topBtn){
+    topBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  }
+})();
+</script>
+</body>
+</html>
